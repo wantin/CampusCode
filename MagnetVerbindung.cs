@@ -19,8 +19,6 @@ public class MagnetVerbindung : MonoBehaviour {
 	private bool Fixiert;
 	private FixedJoint Fixierung;
 	
-	//TODO: is grabbed abfragen
-
 	private void Awake() {
 		DieserKörper = GetComponent<Rigidbody>();
 		ZweiterKörper = ZweiteHälfte.GetComponent<Rigidbody>();

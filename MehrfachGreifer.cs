@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class MehrfachGreifer : OVRGrabber {
-	//protected HashSet<Tuple<OVRGrabbable, Quaternion, Vector3>> IndirektGegriffene;
 	protected Dictionary<GreifbaresEinzelteil, Tuple<Quaternion, Vector3>> IndirektGegriffene;
 
 	protected override void Awake() {
@@ -37,9 +36,24 @@ public class MehrfachGreifer : OVRGrabber {
 
 	//TODO brauche ich eine version von GrabVolumeEnable?
 
-	//TODO Version von Offhand Grabbed: Wo teile ich das Gebilde auf? und wie?
+
 	public override void OffhandGrabbed(OVRGrabbable grabbable) {
-		base.OffhandGrabbed(grabbable);
+		if (grabbable == m_grabbedObj) {
+			GrabbableRelease(Vector3.zero, Vector3.zero);
+			foreach (var k in IndirektGegriffene) {
+				k.Key.GrabEnd(Vector3.zero, Vector3.zero);
+				if (m_parentHeldObject) k.Key.transform.parent = null;
+			}
+
+			IndirektGegriffene = new Dictionary<GreifbaresEinzelteil, Tuple<Quaternion, Vector3>>();
+		}
+		else if (grabbable is GreifbaresEinzelteil && grabbable.isGrabbed) {
+			if (IndirektGegriffene.ContainsKey((GreifbaresEinzelteil) grabbable)) {
+				grabbable.GrabEnd(Vector3.zero, Vector3.zero);
+				if (m_parentHeldObject) grabbable.transform.parent = null;
+				IndirektGegriffene.Remove((GreifbaresEinzelteil) grabbable);
+			}
+		}
 	}
 
 	//TODO closestGrabbableCollider muss für zusätzliche geändert werden vielleicht
@@ -70,6 +84,12 @@ public class MehrfachGreifer : OVRGrabber {
 					relPos = Quaternion.Inverse(transform.rotation) * relPos;
 					kPosOffset = relPos;
 				}
+				// Hier ist offhandgrab für indirekte
+				if (k.isGrabbed && k.GreifDistanz <= kPosOffset.magnitude) break;
+				else if (k.isGrabbed) {
+					//TODO drop it with the other hand
+					k.GreifDistanz = kPosOffset.magnitude;
+				}
 
 				Quaternion kRotOffset;
 				if (k.snapOrientation) {
@@ -97,7 +117,6 @@ public class MehrfachGreifer : OVRGrabber {
 	// Ich brauche linearVelocity und angularVelocity aus der base function, weswegen ich sie hier
 	// explizit hinkopiert habe statt base.GrabEnd(); aufzurufen
 	// ich könnte statt das hier so groß zu machen auch Grabbable Release überschreiben, was die
-	// OVRGrabber Klasse aber nicht vorsieht. Das würde dann auch OffhandGrabbed beeinflussen
 	// OVRGrabber Klasse aber nicht vorsieht. Das würde dann auch OffhandGrabbed beeinflussen
 	protected override void GrabEnd() {
 		if (m_grabbedObj != null) {
